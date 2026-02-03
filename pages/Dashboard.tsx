@@ -1,28 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { getAppData } from '../services/storage';
-import { getFinancialInsight } from '../services/geminiService';
 import { AppData, TransactionType } from '../types';
 import { Card } from '../components/Card';
-import { ArrowUpRight, ArrowDownRight, Sparkles } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export const Dashboard: React.FC = () => {
   const [data, setData] = useState<AppData | null>(null);
-  const [insight, setInsight] = useState<string>('');
-  const [loadingInsight, setLoadingInsight] = useState(false);
 
   useEffect(() => {
     const loadedData = getAppData();
     setData(loadedData);
   }, []);
-
-  const handleGenerateInsight = async () => {
-    if (!data) return;
-    setLoadingInsight(true);
-    const text = await getFinancialInsight(data.transactions);
-    setInsight(text);
-    setLoadingInsight(false);
-  };
 
   if (!data) return <div className="p-8 text-center text-slate-500">Loading Nimbus...</div>;
 
@@ -60,30 +49,6 @@ export const Dashboard: React.FC = () => {
             <span className="text-2xl font-bold text-slate-900">₹{totalBalance.toLocaleString()}</span>
         </div>
       </header>
-
-      {/* AI Insight Section */}
-      <Card className="p-1 bg-gradient-to-r from-indigo-50 to-blue-50 border-indigo-100">
-        <div className="p-5 flex items-start gap-4">
-          <div className="bg-white p-2.5 rounded-xl shadow-sm border border-indigo-50 text-indigo-600">
-            <Sparkles className="w-5 h-5" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-indigo-900 mb-1">Nimbus Insight</h3>
-            {insight ? (
-              <p className="text-sm text-indigo-800 leading-relaxed">{insight}</p>
-            ) : (
-              <p className="text-sm text-indigo-700/70">Tap the button to analyze your spending habits and get a smart tip.</p>
-            )}
-          </div>
-          <button 
-            onClick={handleGenerateInsight}
-            disabled={loadingInsight}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
-          >
-            {loadingInsight ? 'Analyzing...' : 'Analyze'}
-          </button>
-        </div>
-      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="p-6">
