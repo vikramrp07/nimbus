@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { getAppData, addCategory, deleteCategory, saveAppData, updateSyncConfig, updateLastSync } from '../services/storage';
+import { getAppData, addCategory, deleteCategory, saveAppData, updateSyncConfig, updateLastSync, clearAllData, clearTransactionsOnly } from '../services/storage';
 import { generateCSV, downloadFile, parseBackupFile } from '../services/exportService';
 import { syncToGoogleSheets, APPS_SCRIPT_TEMPLATE } from '../services/googleSheetService';
 import { CategoryItem } from '../types';
@@ -22,9 +22,28 @@ export const Settings: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState<string | undefined>(undefined);
 
+  // Reset Confirmation States
+  const [resetConfirm, setResetConfirm] = useState(false);
+  const [clearTxConfirm, setClearTxConfirm] = useState(false);
+
   useEffect(() => {
     loadData();
   }, []);
+
+  // Timers to reset confirmation buttons
+  useEffect(() => {
+    if (resetConfirm) {
+      const timer = setTimeout(() => setResetConfirm(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [resetConfirm]);
+
+  useEffect(() => {
+    if (clearTxConfirm) {
+      const timer = setTimeout(() => setClearTxConfirm(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [clearTxConfirm]);
 
   const loadData = () => {
     const data = getAppData();
@@ -293,19 +312,47 @@ export const Settings: React.FC = () => {
 
       {/* Reset Section */}
       <Card className="p-6 border-red-100 bg-red-50/30">
-          <div className="flex items-center gap-3 mb-2 text-red-700">
-             <Database className="w-5 h-5" />
-             <h2 className="text-lg font-bold">Danger Zone</h2>
+          <div className="flex items-center gap-3 mb-4 text-red-700">
+             <div className="p-2 bg-red-100 rounded-lg">
+                <Database className="w-5 h-5" />
+             </div>
+             <div>
+                <h2 className="text-lg font-bold">Danger Zone</h2>
+                <p className="text-xs text-red-600/80">Irreversible actions</p>
+             </div>
           </div>
-          <p className="text-sm text-slate-600 mb-4">Clear all your local data and reset to default state. This action cannot be undone.</p>
-          <Button variant="danger" onClick={() => {
-              if (window.confirm("This will delete all your transactions, categories, and goals. Are you sure?")) {
-                  localStorage.clear();
-                  window.location.reload();
-              }
-          }}>
-              Reset App Data
-          </Button>
+          
+          <div className="space-y-3">
+             <div className="flex items-center justify-between p-3 bg-white/60 rounded-xl border border-red-100">
+                <div>
+                   <h3 className="text-sm font-semibold text-slate-900">Clear Transactions</h3>
+                   <p className="text-xs text-slate-500">Keep settings, delete history.</p>
+                </div>
+                <Button 
+                   type="button"
+                   variant={clearTxConfirm ? "danger" : "secondary"}
+                   className="min-w-[140px]"
+                   onClick={() => clearTxConfirm ? clearTransactionsOnly() : setClearTxConfirm(true)}
+                >
+                   {clearTxConfirm ? "Click to Confirm" : "Clear History"}
+                </Button>
+             </div>
+
+             <div className="flex items-center justify-between p-3 bg-white/60 rounded-xl border border-red-100">
+                <div>
+                   <h3 className="text-sm font-semibold text-slate-900">Factory Reset</h3>
+                   <p className="text-xs text-slate-500">Wipe all data and start fresh.</p>
+                </div>
+                <Button 
+                   type="button"
+                   variant="danger"
+                   className={`min-w-[140px] ${resetConfirm ? "bg-red-600 hover:bg-red-700 text-white" : ""}`}
+                   onClick={() => resetConfirm ? clearAllData() : setResetConfirm(true)}
+                >
+                   {resetConfirm ? "Click to Confirm" : "Reset App"}
+                </Button>
+             </div>
+          </div>
       </Card>
 
       {/* Setup Modal */}

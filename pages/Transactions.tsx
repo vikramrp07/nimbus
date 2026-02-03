@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { getAppData } from '../services/storage';
+import { getAppData, deleteTransaction } from '../services/storage';
 import { AppData, TransactionType } from '../types';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, Trash2 } from 'lucide-react';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 
@@ -11,8 +11,19 @@ export const Transactions: React.FC = () => {
   const [filter, setFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
 
   useEffect(() => {
-    setData(getAppData());
+    loadData();
   }, []);
+
+  const loadData = () => {
+    setData(getAppData());
+  };
+
+  const handleDelete = (id: string) => {
+    if (window.confirm("Are you sure you want to delete this transaction? This action cannot be undone.")) {
+      deleteTransaction(id);
+      loadData();
+    }
+  };
 
   if (!data) return null;
 
@@ -82,10 +93,20 @@ export const Transactions: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="flex items-center gap-4">
                   <p className={`font-semibold ${tx.type === TransactionType.INCOME ? 'text-emerald-600' : 'text-slate-900'}`}>
                     {tx.type === TransactionType.INCOME ? '+' : '-'}₹{tx.amount.toFixed(2)}
                   </p>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(tx.id);
+                    }}
+                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                    title="Delete Transaction"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             ))}

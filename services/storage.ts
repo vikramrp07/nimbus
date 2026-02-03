@@ -76,6 +76,27 @@ export const addTransaction = (tx: Omit<Transaction, 'id'>): Transaction => {
   return newTx;
 };
 
+export const deleteTransaction = (id: string) => {
+  const data = getAppData();
+  const index = data.transactions.findIndex(t => t.id === id);
+  
+  if (index === -1) return;
+
+  const tx = data.transactions[index];
+
+  // If it was an expense, restore the budget spent amount
+  if (tx.type === TransactionType.EXPENSE) {
+      const budgetIndex = data.budgets.findIndex(b => b.category === tx.category);
+      if (budgetIndex >= 0) {
+          // Prevent negative values just in case
+          data.budgets[budgetIndex].spent = Math.max(0, data.budgets[budgetIndex].spent - tx.amount);
+      }
+  }
+
+  data.transactions.splice(index, 1);
+  saveAppData(data);
+};
+
 export const updateGoal = (goalId: string, amount: number) => {
   const data = getAppData();
   const index = data.goals.findIndex(g => g.id === goalId);
@@ -83,6 +104,27 @@ export const updateGoal = (goalId: string, amount: number) => {
     data.goals[index].currentAmount = amount;
     saveAppData(data);
   }
+};
+
+export const addGoal = (name: string, targetAmount: number, dueDate: string): Goal => {
+  const data = getAppData();
+  const newGoal: Goal = {
+    id: Math.random().toString(36).substring(2, 9),
+    name,
+    targetAmount,
+    currentAmount: 0,
+    dueDate,
+    icon: 'trophy'
+  };
+  data.goals.push(newGoal);
+  saveAppData(data);
+  return newGoal;
+};
+
+export const deleteGoal = (id: string) => {
+  const data = getAppData();
+  data.goals = data.goals.filter(g => g.id !== id);
+  saveAppData(data);
 };
 
 export const addCategory = (name: string, color: string): CategoryItem => {
@@ -103,6 +145,38 @@ export const deleteCategory = (id: string) => {
   saveAppData(data);
 };
 
+export const addBudget = (category: string, limit: number, color: string) => {
+  const data = getAppData();
+  
+  // Check if budget for this category already exists
+  if (data.budgets.some(b => b.category === category)) {
+      return null;
+  }
+
+  // Calculate existing spend for this category from transaction history
+  const spent = data.transactions
+    .filter(t => t.category === category && t.type === TransactionType.EXPENSE)
+    .reduce((acc, t) => acc + t.amount, 0);
+
+  const newBudget: BudgetEnvelope = {
+    id: Math.random().toString(36).substring(2, 9),
+    category,
+    limit,
+    spent,
+    color
+  };
+  
+  data.budgets.push(newBudget);
+  saveAppData(data);
+  return newBudget;
+};
+
+export const deleteBudget = (id: string) => {
+  const data = getAppData();
+  data.budgets = data.budgets.filter(b => b.id !== id);
+  saveAppData(data);
+};
+
 export const updateSyncConfig = (url: string) => {
   const data = getAppData();
   data.syncConfig = { ...data.syncConfig, googleScriptUrl: url };
@@ -113,4 +187,17 @@ export const updateLastSync = () => {
   const data = getAppData();
   data.syncConfig = { ...data.syncConfig, lastSynced: new Date().toISOString() };
   saveAppData(data);
+};
+
+export const clearAllData = () => {
+  localStorage.removeItem(STORAGE_KEY);
+  window.location.reload();
+};
+
+export const clearTransactionsOnly = () => {
+  const data = getAppData();
+  data.transactions = [];
+  data.budgets = data.budgets.map(b => ({ ...b, spent: 0 }));
+  saveAppData(data);
+  window.location.reload();
 };

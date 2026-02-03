@@ -8,6 +8,7 @@ import { Goals } from './pages/Goals';
 import { Settings } from './pages/Settings';
 import { Modal } from './components/Modal';
 import { Input, Select } from './components/Input';
+import { DatePicker } from './components/DatePicker';
 import { Button } from './components/Button';
 import { Category, TransactionType, CategoryItem } from './types';
 import { addTransaction, getAppData } from './services/storage';
@@ -18,28 +19,58 @@ const App: React.FC = () => {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<string>(Category.FOOD);
   const [type, setType] = useState<TransactionType>(TransactionType.EXPENSE);
+  const [date, setDate] = useState('');
   const [availableCategories, setAvailableCategories] = useState<CategoryItem[]>([]);
+
+  const getTodayString = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   useEffect(() => {
     const data = getAppData();
     setAvailableCategories(data.categories || []);
-  }, [isModalOpen]); // Reload categories when modal opens in case they changed
+    if (isModalOpen && !date) {
+      setDate(getTodayString());
+    }
+  }, [isModalOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !description) return;
+
+    let transactionDate = new Date();
+    if (date) {
+        const [y, m, d] = date.split('-').map(Number);
+        // Create local date at midnight
+        transactionDate = new Date(y, m - 1, d);
+        
+        // If the selected date is today, use the current time for better accuracy/sorting
+        const today = new Date();
+        if (
+            today.getFullYear() === y && 
+            today.getMonth() === m - 1 && 
+            today.getDate() === d
+        ) {
+            transactionDate = today;
+        }
+    }
 
     addTransaction({
       amount: parseFloat(amount),
       description,
       category,
       type,
-      date: new Date().toISOString(),
+      date: transactionDate.toISOString(),
     });
 
     // Reset and close
     setAmount('');
     setDescription('');
+    setDate(getTodayString());
     setIsModalOpen(false);
     
     // Simple way to refresh data without complex state management for this MVP
@@ -102,6 +133,12 @@ const App: React.FC = () => {
               placeholder="What is this for?"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+            />
+
+            <DatePicker
+              label="Date"
+              value={date}
+              onChange={setDate}
             />
 
             <Select
