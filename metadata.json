@@ -1,0 +1,5 @@
+{
+  "name": "Nimbus Budget",
+  "description": "A minimalistic, modern monthly budget application focusing on simplicity and clarity. Features account aggregation, budget envelopes, quick expense entry, and AI-powered financial insights.",
+  "requestFramePermissions": []
+}
